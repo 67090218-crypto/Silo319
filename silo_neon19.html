@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<!--
+  silo_neon.html - แดชบอร์ดไซโลข้าวเปลือก (ทีม) รวมข้อ 1-3 ในหน้าเดียว
+  เปิดแบบนี้: silo_neon.html?team=team19
+  ฟัง bento-aiot/<ทีม>/event และ /hb ส่งคำสั่งเข้า bento-aiot/<ทีม>/cmd (ack, set rh_hi, set t_hi)
+  ต่อยอดจาก web/idea_3.html ของคอร์ส (ภาพตัดไซโล จุดรา เส้นแนวโน้ม)
+  broker สาธารณะ ไม่มีรหัสผ่าน ห้ามส่งของลับ
+-->
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ไซโลข้าวเปลือก · Smart Farm</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0b0805; --card:#16110b; --line:#4a3a22; --ink:#fff3dc; --dim:#bfa88a;
+  --grain:#ffd166; --ok:#7dff9b; --warn:#ffb347; --bad:#ff5a4a; --cyan:#5ff3ff; --steel:#6b6257;
+  --font:"Kanit",system-ui,-apple-system,"Segoe UI","Noto Sans Thai",sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;color:var(--ink);font-family:var(--font);line-height:1.5;min-height:100vh;
+  background:
+    radial-gradient(1000px 500px at 15% -10%,rgba(255,209,102,.13),transparent 60%),
+    radial-gradient(800px 500px at 100% 10%,rgba(95,243,255,.08),transparent 60%),
+    linear-gradient(rgba(255,209,102,.04) 1px,transparent 1px) 0 0/100% 34px,
+    var(--bg);}
+.wrap{max-width:1000px;margin:0 auto;padding:16px}
+/* ---- neon ---- */
+.neon{color:#fff6d6;text-shadow:0 0 4px #fff,0 0 10px var(--grain),0 0 22px var(--grain),0 0 44px #ff9f1c;letter-spacing:.5px}
+.neon.cyan{text-shadow:0 0 4px #fff,0 0 10px var(--cyan),0 0 24px var(--cyan),0 0 46px #1ea5ff}
+.neon.green{text-shadow:0 0 4px #fff,0 0 10px var(--ok),0 0 24px var(--ok),0 0 46px #1fbf4b}
+.neon.red{text-shadow:0 0 4px #fff,0 0 10px var(--bad),0 0 24px var(--bad),0 0 46px #d61f0f}
+@keyframes flick{0%,19%,21%,60%,62%,100%{opacity:1}20%,61%{opacity:.78}}
+h1.neon{font-size:34px;font-weight:800;margin:0;animation:flick 6s infinite}
+h2.neon{font-size:20px;font-weight:600;margin:0 0 10px;display:flex;align-items:center;gap:10px}
+h2 .no{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;border:2px solid var(--grain);
+  box-shadow:0 0 10px var(--grain),inset 0 0 8px var(--grain);font-size:16px;text-shadow:none;color:var(--grain)}
+.sub{color:var(--dim);font-size:14px;margin:0}
+header{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;align-items:center;margin-bottom:6px}
+.card{background:linear-gradient(180deg,rgba(255,255,255,.03),transparent),var(--card);border:1px solid var(--line);border-radius:20px;
+  padding:16px;margin-top:14px;box-shadow:0 0 0 1px rgba(255,209,102,.05),0 8px 30px rgba(0,0,0,.45);min-width:0}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chip{padding:3px 12px;border-radius:99px;border:1px solid var(--line);font-size:13px;color:var(--dim);background:rgba(0,0,0,.25)}
+.chip.ok{color:var(--ok);border-color:var(--ok);box-shadow:0 0 10px rgba(125,255,155,.35)}
+.chip.warn{color:var(--warn);border-color:var(--warn);box-shadow:0 0 10px rgba(255,179,71,.35)}
+.chip.bad{color:var(--bad);border-color:var(--bad);box-shadow:0 0 12px rgba(255,90,74,.5)}
+.chip.sim{color:var(--cyan);border-color:var(--cyan);box-shadow:0 0 10px rgba(95,243,255,.4)}
+button,input{font:inherit;min-height:40px;padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:#0e0a06;color:var(--ink)}
+input{width:90px}input#team{width:120px}
+button{cursor:pointer;transition:.15s}button:hover{border-color:var(--grain);box-shadow:0 0 12px rgba(255,209,102,.4)}
+button.main{background:var(--grain);border-color:var(--grain);color:#2a1d08;font-weight:800;box-shadow:0 0 16px rgba(255,209,102,.5)}
+button.pulse{background:var(--bad);border-color:var(--bad);color:#fff;animation:pul 1s infinite}
+@keyframes pul{50%{box-shadow:0 0 28px var(--bad);opacity:.8}}
+#alarm{display:none;margin-top:12px;padding:14px;border-radius:18px;background:rgba(255,90,74,.15);border:2px solid var(--bad);
+  color:#ffd9d3;font-weight:800;font-size:18px;text-align:center;box-shadow:0 0 28px rgba(255,90,74,.6);animation:pul 1.2s infinite}
+#alarm.on{display:block}
+#silentBar{display:none;margin-top:12px;padding:10px;border-radius:14px;background:var(--bad);color:#fff;font-weight:800;text-align:center;box-shadow:0 0 24px var(--bad)}
+#silentBar.on{display:block}
+.grid2{display:grid;grid-template-columns:minmax(0,260px) minmax(0,1fr);gap:14px}
+@media(max-width:700px){.grid2{grid-template-columns:1fr}}
+.bigrh{font-size:78px;font-weight:800;line-height:1}
+.state{font-size:26px;font-weight:800}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.stat{background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:14px;padding:8px;text-align:center}
+.stat small{display:block;color:var(--dim);font-size:12px}.stat b{font-size:20px}
+.lv0{color:var(--ok)}.lv1{color:var(--warn)}.lv2{color:var(--bad)}
+.bigrh.lv0{text-shadow:0 0 18px rgba(125,255,155,.7)}.bigrh.lv1{text-shadow:0 0 18px rgba(255,179,71,.7)}.bigrh.lv2{text-shadow:0 0 22px rgba(255,90,74,.9)}
+/* silo */
+#fillRect{transition:transform .9s ease,fill .5s}
+.mold{animation:mp 2.2s ease-in-out infinite}@keyframes mp{50%{opacity:.3}}
+.grainf{animation:fl 6s linear infinite}@keyframes fl{to{transform:translateY(-10px);opacity:0}}
+/* RGB matrix + msgbox mock */
+.matrix{font-family:"Courier New",monospace;font-weight:800;font-size:30px;letter-spacing:4px;text-align:center;padding:14px 8px;border-radius:10px;
+  background:#050302;border:2px solid #2a2118;min-height:68px;display:grid;place-items:center}
+.msgbox{white-space:pre-line;background:#0e0a06;border:2px solid var(--bad);border-radius:12px;padding:10px 14px;color:#ffd9d3;font-size:15px;box-shadow:0 0 16px rgba(255,90,74,.45)}
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.feat{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
+.f{background:rgba(0,0,0,.3);border:1px solid var(--line);border-radius:16px;padding:12px}
+.f h3{margin:0 0 4px;font-size:15px;color:var(--grain);text-shadow:0 0 8px rgba(255,209,102,.6)}
+.f p{margin:2px 0;font-size:13px;color:var(--dim)}.f .v{font-size:22px;font-weight:800;color:var(--ink)}
+ul#log{list-style:none;margin:0;padding:0;max-height:210px;overflow:auto;font-size:13px}
+ul#log li{padding:6px 0;border-bottom:1px solid var(--line)}
+table{width:100%;border-collapse:collapse;font-size:14px}td,th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left}th{color:var(--grain)}
+footer{margin:18px 0 8px;color:var(--dim);font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div>
+    <h1 class="neon">ไซโลข้าวเปลือก</h1>
+    <p class="sub">ข้าวในไซโลปลอดภัยไหม · ดูค่าสด เกณฑ์ และสิ่งที่ต้องทำ ในหน้าเดียว</p>
+  </div>
+  <div class="row">
+    <input id="team" placeholder="team19" aria-label="ชื่อทีม"><button id="go" class="main">ต่อ</button>
+  </div>
+</header>
+<div class="row">
+  <span id="conn" class="chip">ยังไม่ต่อ</span>
+  <span id="board" class="chip">รอข้อมูลจากบอร์ด</span>
+  <span id="srcChip" class="chip">แหล่งข้อมูล: -</span>
+</div>
+<div id="silentBar">บอร์ดเงียบเกิน 15 วินาที · ตรวจบอร์ด/WiFi ก่อน อย่าเชื่อค่าที่ค้างอยู่</div>
+<div id="alarm" role="alert"></div>
+
+<!-- ============ ข้อ 1 ============ -->
+<section class="card">
+  <h2 class="neon"><span class="no">1</span>เกณฑ์ของเราเอง</h2>
+  <p class="sub">โค้ดเริ่มต้นตั้งไว้ 70 % เป็นค่าสาธิต ทีมวัดเองแล้วตั้งใหม่: ห้องที่ทดสอบอยู่ระหว่าง 36–47 %RH เป่าลมหายใจใส่บอร์ดสูงสุด 57 %RH จึงตั้งเหลืองที่ &gt; <b id="thY">50</b> % (สูงกว่าห้องสูงสุด ต่ำกว่าตอนเป่า) และแดงที่ ≥ <b id="thR">55</b> %</p>
+  <div class="row" style="margin:10px 0">
+    <span class="chip">ห้อง 36–47 %</span><span class="chip">เป่าสูงสุด 57 %</span>
+    <span class="chip warn">เหลือง &gt; <span class="yv">50</span> %</span><span class="chip bad">แดง ≥ <span class="rv">55</span> % (RH_FAR = 5)</span>
+  </div>
+  <div class="grid2">
+    <div>
+      <p class="sub" style="margin-bottom:4px">ภาพตัดไซโล (ระดับเมล็ด = %RH)</p>
+      <svg viewBox="0 0 190 270" width="100%" height="300" aria-label="ไซโล">
+        <defs>
+          <clipPath id="body"><rect x="30" y="50" width="100" height="190" rx="8"/></clipPath>
+          <filter id="glow"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        </defs>
+        <polygon points="24,52 80,8 136,52" fill="var(--steel)" opacity=".8"/>
+        <g clip-path="url(#body)">
+          <rect x="30" y="50" width="100" height="190" fill="#0e0a06"/>
+          <rect id="fillRect" x="30" y="50" width="100" height="190" fill="#ffd166" opacity=".9" style="transform:translateY(190px)"/>
+          <g id="mold"></g>
+          <g id="grains"></g>
+        </g>
+        <rect x="30" y="50" width="100" height="190" rx="8" fill="none" stroke="#ffd166" stroke-width="2.5" filter="url(#glow)" opacity=".85"/>
+        <line id="lnY" x1="22" x2="138" stroke="#ffb347" stroke-width="2" stroke-dasharray="5 4" filter="url(#glow)"/>
+        <text id="txY" x="142" font-size="11" fill="#ffb347">50%</text>
+        <line id="lnR" x1="22" x2="138" stroke="#ff5a4a" stroke-width="2" stroke-dasharray="5 4" filter="url(#glow)"/>
+        <text id="txR" x="142" font-size="11" fill="#ff5a4a">55%</text>
+        <rect x="40" y="240" width="10" height="20" fill="var(--steel)"/><rect x="110" y="240" width="10" height="20" fill="var(--steel)"/>
+      </svg>
+    </div>
+    <div>
+      <p class="sub" style="margin-bottom:4px">แนวโน้มความชื้น (%RH) พร้อมเส้นเกณฑ์</p>
+      <svg id="trend" viewBox="0 0 300 110" width="100%" height="150" aria-label="แนวโน้ม">
+        <line id="tY" x1="0" x2="300" stroke="#ffb347" stroke-dasharray="4 3"/>
+        <line id="tR" x1="0" x2="300" stroke="#ff5a4a" stroke-dasharray="4 3"/>
+        <polyline id="tLine" fill="none" stroke="#ffd166" stroke-width="3" points="" filter="url(#glow)"/>
+      </svg>
+      <p id="trendNote" class="sub">รอข้อมูล</p>
+      <table style="margin-top:10px">
+        <tr><th>ค่า</th><th>เขียว</th><th>เหลือง</th><th>แดง</th></tr>
+        <tr><td>ความชื้น</td><td class="lv0">ไม่เกิน <span class="yv">50</span> %</td><td class="lv1">&gt; <span class="yv">50</span> %</td><td class="lv2">≥ <span class="rv">55</span> %</td></tr>
+        <tr><td>อุณหภูมิ</td><td class="lv0">15–<span class="ty">45</span> °C</td><td class="lv1"><span class="ty">45</span>–<span class="tr">55</span> °C</td><td class="lv2">≥ <span class="tr">55</span> °C</td></tr>
+      </table>
+      <p class="sub" style="margin-top:6px">บอร์ดชดเชยอุณหภูมิ TEMP_OFFSET = −7 °C เพราะบอร์ดอ่านสูงกว่าห้อง</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ข้อ 2 ============ -->
+<section class="card">
+  <h2 class="neon cyan"><span class="no" style="border-color:var(--cyan);color:var(--cyan);box-shadow:0 0 10px var(--cyan),inset 0 0 8px var(--cyan)">2</span>จอสำหรับคนดูแลไซโล</h2>
+  <p class="sub">ผู้ใช้เดินผ่านแล้วมองจอ ต้องรู้ใน 1 วินาทีว่าปลอดภัยไหม และต้องทำอะไร ใช้คำเดียวกับจอบอร์ดและไฟ RGB</p>
+  <div class="grid2" style="margin-top:10px">
+    <div>
+      <div id="rh" class="bigrh">--</div><div class="sub">%RH</div>
+      <div id="state" class="state">-</div>
+      <div id="todo" class="sub">รอข้อมูล</div>
+    </div>
+    <div>
+      <div class="stats">
+        <div class="stat"><small>อุณหภูมิ</small><b id="temp">-</b></div>
+        <div class="stat"><small>เวลาเสี่ยงรา</small><b id="wet">-</b></div>
+        <div class="stat"><small>RH สูงสุด</small><b id="rhmax">-</b></div>
+      </div>
+      <p class="sub" style="margin:12px 0 4px">ไฟ RGB matrix บนบอร์ด (ภาพจำลองคำที่ผู้ใช้เห็น)</p>
+      <div id="matrix" class="matrix" style="color:#444">--</div>
+      <div class="legend">
+        <span class="chip ok">ปลอดภัย · OK</span><span class="chip warn">เริ่มชื้น · WET</span><span class="chip bad">อันตราย · FAN!</span>
+      </div>
+      <p class="sub" style="margin:12px 0 4px">กล่องเตือนบนบอร์ด (ขึ้นเมื่ออันตราย แล้วกด SW5 รับทราบ)</p>
+      <div id="msgbox" class="msgbox" style="opacity:.35">ข้าวอาจขึ้นรา
+(เหตุผลจากบอร์ด)
+เปิดพัดลม SW5</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ข้อ 3 ============ -->
+<section class="card">
+  <h2 class="neon green"><span class="no" style="border-color:var(--ok);color:var(--ok);box-shadow:0 0 10px var(--ok),inset 0 0 8px var(--ok)">3</span>ความสามารถที่ทีมเพิ่ม</h2>
+  <p class="sub">ชื้นเกินต้องติดกัน 5 วินาทีถึงแจ้ง (เปิดประตูแป๊บเดียวไม่เตือน) และถ้าบอร์ดเงียบเกิน 15 วินาที แถบด้านบนจะเป็นแดงทันที</p>
+  <div class="feat" style="margin-top:10px">
+    <div class="f"><h3>① หน่วงก่อนแจ้ง</h3><div class="v">5 วินาที</div><p>HOLD_S: ระดับใหม่ต้องติดกันก่อนบอร์ดแจ้ง</p></div>
+    <div class="f"><h3>② นับครั้งที่เตือนจริง</h3><div class="v" id="alerts">0 ครั้ง</div><p>นับเฉพาะเหลือง/แดง ไม่นับตอนกลับมาปกติ</p></div>
+    <div class="f"><h3>③ สัญญาณชีพ /hb</h3><div class="v" id="hbAge">-</div><p>บอร์ดส่งทุก 10 วินาที · เงียบเกิน 15 วินาทีเป็นแดง</p></div>
+    <div class="f"><h3>④ สั่งเกณฑ์จากมือถือ</h3><div class="v" id="cmdState">พร้อม</div><p>ส่ง rh_hi / t_hi ผ่าน MQTT บอร์ดตัดสินใหม่ทันที</p></div>
+  </div>
+
+  <h2 class="neon" style="font-size:17px;margin-top:16px">สั่งไซโล</h2>
+  <div class="row">
+    <button class="main" id="ack">รับทราบ เปิดพัดลมแล้ว</button>
+    <button id="csv">ดาวน์โหลด CSV</button>
+  </div>
+  <div class="row" style="margin-top:8px">
+    <label class="sub">ตั้งความชื้นสูงสุด (%) <input id="inRh" type="number" min="1" max="90" value="50"></label><button id="setRh">ส่ง</button>
+    <label class="sub">ตั้งอุณหภูมิสูงสุด (C) <input id="inT" type="number" min="16" max="45" value="45"></label><button id="setT">ส่ง</button>
+  </div>
+  <p id="cmdMsg" class="sub"></p>
+
+  <h2 class="neon" style="font-size:17px;margin-top:12px">เหตุการณ์ล่าสุด</h2>
+  <ul id="log"><li class="sub">ยังไม่มีเหตุการณ์</li></ul>
+
+  <h2 class="neon cyan" style="font-size:17px;margin-top:14px">โหมดสาธิตสำรอง (ข้อมูลจำลอง)</h2>
+  <p class="sub">ใช้ตอนเน็ตหรือ broker ล่ม เป็นค่าที่หน้าเว็บสร้างเอง ไม่ใช่ค่าจากบอร์ด และจะแสดงป้าย "จำลอง" กำกับ</p>
+  <div class="row" style="margin-top:6px">
+    <button id="s0">จำลอง: ปลอดภัย</button><button id="s1">จำลอง: เริ่มชื้น</button><button id="s2">จำลอง: อันตราย</button>
+  </div>
+</section>
+
+<footer>
+  <p>ค่าจริงจากบอร์ด: ความชื้น (SHT40) และอุณหภูมิ · ค่าจำลอง: "แดด +N" จากปุ่มหมุน VR3 บนบอร์ด ที่บวกเข้าอุณหภูมิ · เกณฑ์เป็นค่าสาธิตในห้องเรียน ไม่ใช่คำแนะนำทางเกษตร</p>
+  <p>broker.hivemq.com ไม่เข้ารหัส ห้ามส่งรหัสผ่านหรือข้อมูลส่วนตัว</p>
+</footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mqtt@5.16.0/dist/mqtt.min.js"
+        integrity="sha384-9WWboT9UtuPFRlOLq4FygQkcJxzYcpz8SXGkNyCEXM+44n14xzjNlrRKYZwuF/A6" crossorigin="anonymous"></script>
+<script>
+const BROKER_URL = "wss://broker.hivemq.com:8884/mqtt";
+const ROOT = "bento-aiot";
+const SILENT_MS = 15000;
+const RH_FAR = 5, T_FAR = 10;                       // ตรงกับโค้ดบอร์ด
+const STATE_TH = ["ปลอดภัย", "เริ่มชื้น", "อันตราย"];
+const MX_TXT = ["OK", "WET", "FAN!"];
+const COLORS = ["#7dff9b", "#ffb347", "#ff5a4a"];
+const TODO = ["ไม่ต้องทำอะไร", "จับตาดู ความชื้นเริ่มสูง", "ข้าวอาจขึ้นรา เปิดพัดลม แล้วกดรับทราบ"];
+const ALERT_TH = { ok: "ปลอดภัย", cold: "ไซโลเย็น", hot: "ไซโลร้อน", dry: "แห้งไป", wet: "ชื้นเกิน" };
+const $ = (id) => document.getElementById(id);
+
+let client = null, team = "", rhHi = 50, tHi = 45;
+let alerts = 0, lastSeen = 0, level = -1, acked = true, lastWhy = "", simWet = 0, lastSim = false;
+const hist = [], rows = [];
+
+function num(v) { return (typeof v === "number" && Number.isFinite(v)) ? v : null; }
+function str(v, m) { return typeof v === "string" ? v.slice(0, m || 40) : ""; }
+function okTeam(t) { return /^team[0-9a-z_]{2,16}$/i.test(t) && t !== "teamXX" && t !== "team00"; }
+function whyTh(code) { return str(code, 60).split("+").map((c) => ALERT_TH[c] || c).join(" + "); }
+function setConn(t, cls) { $("conn").textContent = t; $("conn").className = "chip " + (cls || ""); }
+function siloY(rh) { return 240 - Math.max(0, Math.min(100, rh)) * 1.9; }
+function mmss(s) { return Math.floor(s / 60) + " นาที " + (s % 60) + " วินาที"; }
+function setAll(sel, v) { document.querySelectorAll(sel).forEach((e) => { e.textContent = v; }); }
+
+// ---------- เกณฑ์ ----------
+function drawThresholds() {
+  const yY = siloY(rhHi), yR = siloY(rhHi + RH_FAR);
+  [["lnY", yY], ["lnR", yR]].forEach(([id, y]) => { $(id).setAttribute("y1", y); $(id).setAttribute("y2", y); });
+  $("txY").setAttribute("y", yY - 3); $("txY").textContent = rhHi + "%";
+  $("txR").setAttribute("y", yR - 3); $("txR").textContent = (rhHi + RH_FAR) + "%";
+  const ty = (v) => 110 - Math.max(0, Math.min(100, v)) * 1.1;
+  $("tY").setAttribute("y1", ty(rhHi)); $("tY").setAttribute("y2", ty(rhHi));
+  $("tR").setAttribute("y1", ty(rhHi + RH_FAR)); $("tR").setAttribute("y2", ty(rhHi + RH_FAR));
+  setAll(".yv", rhHi); setAll(".rv", rhHi + RH_FAR); $("thY").textContent = rhHi; $("thR").textContent = rhHi + RH_FAR;
+  setAll(".ty", tHi); setAll(".tr", tHi + T_FAR);
+}
+
+// ---------- ไซโล ----------
+function drawSilo(rh, lv, regen) {
+  const y = siloY(rh);
+  $("fillRect").style.transform = "translateY(" + Math.max(0, y - 50).toFixed(1) + "px)";
+  $("fillRect").setAttribute("fill", ["#ffd166", "#ffb347", "#d98a2b"][lv]);
+  if (!regen) return;
+  const g = $("mold"); while (g.firstChild) g.firstChild.remove();
+  if (lv < 2) return;
+  for (let i = 0; i < 10; i++) {
+    const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    c.setAttribute("cx", (38 + Math.random() * 84).toFixed(1));
+    c.setAttribute("cy", (y + 10 + Math.random() * Math.max(6, 225 - y)).toFixed(1));
+    c.setAttribute("r", (2 + Math.random() * 4.5).toFixed(1));
+    c.setAttribute("fill", "#58ff7a"); c.setAttribute("opacity", ".75"); c.setAttribute("class", "mold");
+    c.style.filter = "drop-shadow(0 0 4px #58ff7a)";
+    c.style.animationDelay = (Math.random() * 2).toFixed(1) + "s";
+    g.appendChild(c);
+  }
+}
+setInterval(() => {            // เม็ดข้าวลอยเบา ๆ ให้ภาพมีชีวิต
+  const g = $("grains"); if (!g) return;
+  if (g.childNodes.length > 14) g.firstChild.remove();
+  const c = document.createElementNS("http://www.w3.org/2000/svg", "ellipse");
+  c.setAttribute("cx", (36 + Math.random() * 88).toFixed(1)); c.setAttribute("cy", "232");
+  c.setAttribute("rx", "2.2"); c.setAttribute("ry", "1.2"); c.setAttribute("fill", "#fff3dc"); c.setAttribute("opacity", ".5");
+  c.setAttribute("class", "grainf"); g.appendChild(c);
+}, 900);
+
+// ---------- แนวโน้ม ----------
+function drawTrend() {
+  const pts = hist.slice(-30);
+  const step = pts.length > 1 ? 300 / (pts.length - 1) : 0;
+  $("tLine").setAttribute("points", pts.map((v, i) => (i * step).toFixed(1) + "," + (110 - Math.max(0, Math.min(100, v)) * 1.1).toFixed(1)).join(" "));
+  const n = pts.length, note = $("trendNote");
+  if (n < 6) { note.textContent = n ? "ข้อมูลยังน้อย" : "รอข้อมูล"; note.style.color = ""; return; }
+  const a = pts.slice(-6, -3).reduce((x, y) => x + y, 0) / 3, b = pts.slice(-3).reduce((x, y) => x + y, 0) / 3;
+  if (b - a > 1.5) { note.textContent = "ชื้นขึ้นเรื่อย ๆ (+" + (b - a).toFixed(1) + " %) ตรวจหลังคาและพัดลมไซโล"; note.style.color = "#ffb347"; }
+  else if (a - b > 1.5) { note.textContent = "ความชื้นลดลง"; note.style.color = "#7dff9b"; }
+  else { note.textContent = "ทรงตัว ยังไม่เห็นแนวโน้มชื้นขึ้นต่อเนื่อง"; note.style.color = ""; }
+}
+
+// ---------- แจ้งเตือน ----------
+function showAlarm() {
+  const on = level === 2 && !acked;
+  $("alarm").className = on ? "on" : "";
+  $("alarm").textContent = on ? "อันตราย: " + (lastWhy || "ชื้นเกิน") + " · ข้าวอาจขึ้นรา เปิดพัดลม แล้วกดรับทราบ" : "";
+  $("ack").className = on ? "pulse" : "main";
+  if (on && navigator.vibrate) navigator.vibrate([300, 150, 300]);
+}
+function showMsgBox() {
+  const mb = $("msgbox");
+  mb.style.opacity = level === 2 ? "1" : ".35";
+  mb.textContent = "ข้าวอาจขึ้นรา\n" + (level === 2 && lastWhy ? lastWhy : "(เหตุผลจากบอร์ด)") + "\nเปิดพัดลม SW5";
+}
+
+// ---------- รับข้อมูล ----------
+function handle(topic, d, sim) {
+  const isHb = topic.endsWith("/hb");
+  const lv = num(d.level), rh = num(d.rh);
+  if (lv === null || lv < 0 || lv > 2 || rh === null) return;
+  const t = num(d.temp_c), wet = num(d.wet_s), rmax = num(d.rh_max), sun = num(d.sun_c), rhh = num(d.rh_hi);
+  lastSim = !!sim;
+  if (!sim) lastSeen = Date.now();
+  if (rhh !== null && Number.isInteger(rhh) && rhh >= 1 && rhh <= 90 && rhh !== rhHi) { rhHi = rhh; $("inRh").value = rhHi; drawThresholds(); }
+
+  const changed = lv !== level;
+  if (!isHb) {                         // /event = ระดับเปลี่ยน (ผ่านหน่วง 5 วินาทีแล้ว)
+    if (lv > 0) alerts++;
+    acked = lv < 2;
+    lastWhy = lv > 0 ? whyTh(d.alert) : "";
+    const li = document.createElement("li");
+    li.innerHTML = "";
+    const tag = document.createElement("b"); tag.textContent = STATE_TH[lv]; tag.style.color = COLORS[lv];
+    li.append(new Date().toLocaleTimeString("th-TH") + " · ", tag,
+      " · RH " + rh.toFixed(0) + "%" + (t !== null ? " · " + t.toFixed(1) + " C" : "") + (lv ? " · " + lastWhy : "") + (sim ? " · จำลอง" : ""));
+    if ($("log").firstChild && $("log").firstChild.classList && $("log").firstChild.classList.contains("sub")) $("log").innerHTML = "";
+    $("log").prepend(li);
+  } else if (lv < 2) { acked = true; }
+  level = lv;
+
+  $("rh").textContent = rh.toFixed(0); $("rh").className = "bigrh lv" + lv;
+  $("state").textContent = STATE_TH[lv]; $("state").className = "state lv" + lv;
+  $("todo").textContent = TODO[lv];
+  $("temp").textContent = t === null ? "-" : t.toFixed(1) + " °C" + (sun ? " (แดด +" + sun + ")" : "");
+  $("wet").textContent = wet === null ? "-" : mmss(wet);
+  if (rmax !== null) $("rhmax").textContent = rmax.toFixed(1) + " %";
+  const mx = $("matrix"); mx.textContent = MX_TXT[lv]; mx.style.color = COLORS[lv]; mx.style.textShadow = "0 0 14px " + COLORS[lv];
+  $("alerts").textContent = alerts + " ครั้ง";
+  drawSilo(rh, lv, !isHb || changed);
+  hist.push(rh); drawTrend(); showAlarm(); showMsgBox();
+  $("srcChip").textContent = sim ? "แหล่งข้อมูล: จำลอง" : "แหล่งข้อมูล: บอร์ดจริง (" + (isHb ? "/hb" : "/event") + ")";
+  $("srcChip").className = "chip " + (sim ? "sim" : "ok");
+  rows.push([new Date().toISOString(), sim ? "sim" : "board", isHb ? "hb" : "event", lv, str(d.alert, 60), t, rh, sun, wet, rmax, rhHi]);
+}
+
+function onMessage(topic, payload) {
+  let d = null;
+  try { d = JSON.parse(payload.toString()); } catch (e) { return; }
+  if (!d || typeof d !== "object" || Array.isArray(d)) return;
+  if (topic.endsWith("/cmd")) { if (d.cmd === "ack") { acked = true; showAlarm(); } return; }
+  if (d.id !== undefined && d.id !== team) return;
+  if (topic.endsWith("/event") || topic.endsWith("/hb")) handle(topic, d, false);
+}
+
+// ---------- ตรวจบอร์ดเงียบ ----------
+setInterval(() => {
+  const chip = $("board");
+  if (!lastSeen) { $("hbAge").textContent = "-"; return; }
+  const age = Date.now() - lastSeen, silent = age > SILENT_MS;
+  chip.textContent = silent ? "บอร์ดเงียบ" : "บอร์ดทำงาน";
+  chip.className = "chip " + (silent ? "bad" : "ok");
+  $("silentBar").className = silent ? "on" : "";
+  $("hbAge").textContent = Math.floor(age / 1000) + " วิ ก่อน";
+  $("hbAge").style.color = silent ? "#ff5a4a" : "#7dff9b";
+}, 1000);
+
+// ---------- MQTT ----------
+function connect() {
+  team = $("team").value.trim();
+  if (!okTeam(team)) { setConn("ใส่ทีม เช่น team19", "warn"); return; }
+  history.replaceState(null, "", "?team=" + encodeURIComponent(team));
+  if (client) client.end(true);
+  client = mqtt.connect(BROKER_URL, { clientId: "silo-neon-" + Math.random().toString(16).slice(2, 10), connectTimeout: 20000 });
+  setConn("กำลังต่อ...", "warn");
+  client.on("connect", () => { setConn("ต่อแล้ว " + team, "ok"); client.subscribe(ROOT + "/" + team + "/#"); });
+  client.on("close", () => setConn("หลุด กำลังต่อใหม่...", "bad"));
+  client.on("message", onMessage);
+}
+function toBoard(obj, label) {
+  if (!client || !client.connected) { $("cmdMsg").textContent = "ยังไม่ได้ต่อ broker"; $("cmdState").textContent = "ยังไม่ต่อ"; return false; }
+  client.publish(ROOT + "/" + team + "/cmd", JSON.stringify(obj));
+  $("cmdMsg").textContent = "ส่งแล้ว: " + JSON.stringify(obj); $("cmdState").textContent = label;
+  return true;
+}
+$("go").onclick = connect;
+$("ack").onclick = () => { if (toBoard({ cmd: "ack" }, "ส่ง ack")) { acked = true; showAlarm(); } };
+$("setRh").onclick = () => {
+  const v = Number($("inRh").value);
+  if (!Number.isInteger(v) || v < 1 || v > 90) { $("cmdMsg").textContent = "rh_hi ต้องเป็นเลขเต็ม 1-90"; return; }
+  if (toBoard({ cmd: "set", rh_hi: v }, "ตั้ง RH " + v)) { rhHi = v; drawThresholds(); }
+};
+$("setT").onclick = () => {
+  const v = Number($("inT").value);
+  if (!Number.isInteger(v) || v < 16 || v > 45) { $("cmdMsg").textContent = "t_hi ต้องเป็นเลขเต็ม 16-45"; return; }
+  if (toBoard({ cmd: "set", t_hi: v }, "ตั้งอุณหภูมิ " + v)) { tHi = v; drawThresholds(); }
+};
+
+// ---------- CSV ----------
+function cell(v) { if (v === null || v === undefined) return ""; const s = String(v); return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
+$("csv").onclick = () => {
+  if (!rows.length) { $("cmdMsg").textContent = "ยังไม่มีข้อมูลให้ดาวน์โหลด"; return; }
+  const head = ["time", "source", "topic", "level", "alert", "temp_c", "rh", "sun_c", "wet_s", "rh_max", "rh_hi"];
+  const text = [head.join(","), ...rows.map((r) => r.map(cell).join(","))].join("\r\n");
+  const url = URL.createObjectURL(new Blob(["\uFEFF" + text], { type: "text/csv;charset=utf-8" }));
+  const a = document.createElement("a"); a.href = url; a.download = "silo_" + (team || "team") + ".csv";
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+};
+
+// ---------- โหมดจำลอง (ไม่ใช่ค่าจากบอร์ด) ----------
+function sim(lv) {
+  const rh = [45, 52, 58][lv], t = [26, 31, 36][lv];
+  simWet = lv === 0 ? 0 : simWet + 12;
+  const alert = ["ok", "wet", "wet"][lv];
+  handle("sim/event", { id: team, crop: "paddy", level: lv, alert, temp_c: t, rh, sun_c: 0, wet_s: simWet, rh_max: Math.max(rh, 58), rh_hi: rhHi }, true);
+}
+$("s0").onclick = () => sim(0); $("s1").onclick = () => sim(1); $("s2").onclick = () => sim(2);
+
+// ---------- เริ่มต้น ----------
+drawThresholds();
+team = new URLSearchParams(location.search).get("team") || "team19";
+$("team").value = team;
+if (okTeam(team)) connect(); else setConn("ใส่ทีมแล้วกด ต่อ", "warn");
+</script>
+</body>
+</html>
